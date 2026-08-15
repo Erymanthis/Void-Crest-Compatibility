@@ -1,0 +1,11 @@
+{
+  "name": "Void_Crest_Compatibility",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/Erymanthis/Void-Crest-Compatibility",
+  "description": "Expands Void Crest with functional base crests, restored passives, new Voidmass mechanics, audio, animation, tint, and ModMenu compatibility.",
+  "dependencies": [
+    "DerVorce-Void_Crest-0.4.41",
+    "Voidlings-Needleforge-0.9.0",
+    "silksong_modding-ModMenu-0.7.6"
+  ]
+}

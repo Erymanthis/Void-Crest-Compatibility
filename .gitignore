@@ -1,0 +1,16 @@
+bin/
+obj/
+.vs/
+.idea/
+
+*.user
+*.suo
+*.pdb
+*.log
+*.cfg
+*.zip
+
+release/
+skin-switch.bat
+skin-switch.cmd
+skin-switch.ps1
