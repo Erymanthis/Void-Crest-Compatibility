@@ -19,7 +19,7 @@ namespace VoidCrestMovesetCompat;
 
 [BepInDependency("io.dervoce.voidcrest")]
 [BepInDependency("io.github.needleforge")]
-[BepInPlugin("io.github.erymanthis.voidcrestmovesetcompat", "VoidCrestMovesetCompat", "1.0.0")]
+[BepInPlugin("io.github.erymanthis.voidcrestmovesetcompat", "VoidCrestMovesetCompat", "1.1.0")]
 public sealed class Plugin : BaseUnityPlugin
 {
     private static readonly BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -83,34 +83,49 @@ public sealed class Plugin : BaseUnityPlugin
         ["Hunter_V2"] = new[] { "Default" },
         ["Hunter_V3"] = new[] { "Default" },
         ["Beast"] = new[] { "Warrior", "Beast" },
-        ["Warrior"] = new[] { "Warrior", "Beast" },
-        ["Architect"] = new[] { "Toolmaster" },
-        ["Toolmaster"] = new[] { "Toolmaster" },
+        ["Architect"] = new[] { "Toolmaster", "Architect" },
         ["Witch"] = new[] { "Witch", "Whip" },
-        ["Whip"] = new[] { "Witch", "Whip" },
         ["Shaman"] = new[] { "Spell", "Shaman" },
-        ["Spell"] = new[] { "Spell", "Shaman" },
         ["Reaper"] = new[] { "Reaper" },
         ["Wanderer"] = new[] { "Wanderer" },
-        ["Cloakless"] = new[] { "Cloakless" },
-        ["Cursed"] = new[] { "Cursed" }
+        ["Cloakless"] = new[] { "Cloakless" }
+    };
+
+    // Void Crest stores the vanilla crest assets under implementation/file names.
+    // Keep those names behind this boundary so configuration, logs, and the menu
+    // consistently use the names players see in game.
+    private static readonly Dictionary<string, string> BaseCrestProviderNames = new(StringComparer.Ordinal)
+    {
+        ["Architect"] = "Toolmaster",
+        ["Shaman"] = "Spell",
+        ["Beast"] = "Warrior"
+    };
+
+    // Void Crest 0.4.4 reads this shared config entry after both plugins have
+    // started and expects an exact ToolCrest asset ID. Its direct Witch path is
+    // not a complete Witch implementation, while Cursed provides the proven
+    // bootstrap HeroConfig for the shared attack family. Keep that workaround
+    // strictly at the base-mod boundary: compatibility runtime resolution still
+    // selects the real Witch ToolCrest/Whip ConfigGroup, and Cursed is never a
+    // player-facing or functional Witch identity.
+    private static readonly Dictionary<string, string> VoidCrestBootstrapValues = new(StringComparer.Ordinal)
+    {
+        ["Architect"] = "Toolmaster",
+        ["Shaman"] = "Spell",
+        ["Beast"] = "Warrior",
+        ["Witch"] = "Cursed"
     };
 
     private static readonly HashSet<string> ApprovedBaseCrests = new(StringComparer.Ordinal)
     {
         "Hunter",
         "Beast",
-        "Warrior",
         "Architect",
-        "Toolmaster",
         "Witch",
-        "Whip",
         "Shaman",
-        "Spell",
         "Reaper",
         "Wanderer",
-        "Cloakless",
-        "Cursed"
+        "Cloakless"
     };
 
     private static readonly string[] OrderedBaseCrests =
@@ -118,10 +133,10 @@ public sealed class Plugin : BaseUnityPlugin
         "Hunter",
         "Wanderer",
         "Reaper",
-        "Toolmaster",
-        "Spell",
-        "Warrior",
-        "Cursed",
+        "Architect",
+        "Shaman",
+        "Beast",
+        "Witch",
         "Cloakless"
     };
 
@@ -139,6 +154,7 @@ public sealed class Plugin : BaseUnityPlugin
     private static int liveSlashRetintLogCount;
     private static int heroExtraNailSlashLogCount;
     private static readonly HashSet<string> LoggedDashAliases = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> LastRuntimeCompositionSnapshots = new(StringComparer.Ordinal);
     private static readonly HashSet<int> ConfirmedNamedBosses = new();
     private static readonly HashSet<string> BossOverhaulObjectNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -209,7 +225,7 @@ public sealed class Plugin : BaseUnityPlugin
     private void Awake()
     {
         Log = new ManualLogSourceAdapter(Logger);
-        CanonicalizeHunterConfig();
+        NormalizeBaseCrestConfigForVoidCrest();
         TintHijacking = Config.Bind(
             "Visuals",
             "Tint Hijacking",
@@ -263,7 +279,7 @@ public sealed class Plugin : BaseUnityPlugin
             "Debug",
             "Shaman Spell Damage Bonus",
             true,
-            "On: while Void uses Spell, enable Shaman's vanilla Silk Skill damage bonus. Off: disable the bonus for testing. Vanilla crests are untouched.");
+            "On: while Void uses Shaman, enable Shaman's vanilla Silk Skill damage bonus. Off: disable the bonus for testing. Vanilla crests are untouched.");
         ShamanSpellDamageBonus.SettingChanged += (_, _) =>
         {
             Log.Info($"Shaman/Spell damage bonus is {(ShamanSpellDamageBonus.Value ? "enabled" : "disabled")} for Void Crest.");
@@ -1302,7 +1318,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         string baseCrestName = GetActiveBaseCrest();
-        ToolCrest? baseCrest = ToolItemManager.GetCrestByName(baseCrestName);
+        ToolCrest? baseCrest = GetBaseCrestProvider(baseCrestName);
         if (!baseCrest)
         {
             Log.Warning($"Base crest '{baseCrestName}' was not found at gameplay start.");
@@ -1345,6 +1361,7 @@ public sealed class Plugin : BaseUnityPlugin
         LogConfigGroupDetails("Target", targetConfigGroup);
         LogChargeSlashDetails("Source", sourceConfigGroup.ChargeSlash);
         LogChargeSlashDetails("Target", targetConfigGroup.ChargeSlash);
+        LogRuntimeCompositionState(hero, "moveset-transplanted", sourceConfigGroup);
         Log.Info($"Applied base crest '{baseCrestName}' attack objects to VoidCrest.");
         return true;
     }
@@ -1366,16 +1383,19 @@ public sealed class Plugin : BaseUnityPlugin
             return false;
         }
 
-        List<string> choices = new(OrderedBaseCrests);
-        string currentValue = CanonicalizeConfiguredBaseCrest(stringEntry.Value?.Trim() ?? string.Empty);
-        if (!string.IsNullOrWhiteSpace(currentValue) && !choices.Contains(currentValue, StringComparer.Ordinal))
+        List<(string Value, string Name)> choices = OrderedBaseCrests
+            .Select(name => (GetVoidCrestBootstrapValue(name), name))
+            .ToList();
+        string currentValue = stringEntry.Value?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(currentValue) &&
+            !choices.Any(choice => string.Equals(choice.Value, currentValue, StringComparison.Ordinal)))
         {
-            choices.Insert(0, currentValue);
+            choices.Insert(0, (currentValue, CanonicalizeConfiguredBaseCrest(currentValue)));
         }
 
         ChoiceElement<string> choiceElement = new(
             entry.LabelName(),
-            ChoiceModels.ForValues(choices),
+            ChoiceModels.ForNamedValues(choices),
             entry.DescriptionLine());
         choiceElement.SynchronizeWith(stringEntry);
         menuElement = choiceElement;
@@ -1502,7 +1522,7 @@ public sealed class Plugin : BaseUnityPlugin
         return ApprovedBaseCrests.Contains(canonical) ? canonical : null;
     }
 
-    private static void CanonicalizeHunterConfig()
+    private static void NormalizeBaseCrestConfigForVoidCrest()
     {
         ConfigEntry<string>? baseCrest = VoidCrestPlugin.BaseCrest;
         if (baseCrest == null)
@@ -1511,17 +1531,50 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         string original = baseCrest.Value?.Trim() ?? string.Empty;
-        string canonical = CanonicalizeConfiguredBaseCrest(original);
-        if (!string.Equals(original, canonical, StringComparison.Ordinal))
+        string selection = CanonicalizeConfiguredBaseCrest(original);
+        string bootstrapValue = GetVoidCrestBootstrapValue(selection);
+        if (!string.Equals(original, bootstrapValue, StringComparison.Ordinal))
         {
-            baseCrest.Value = canonical;
-            Log.Info($"Normalized Void Base Crest '{original}' to '{canonical}'. Hunter follows the player's vanilla evolution.");
+            baseCrest.Value = bootstrapValue;
+            Log.Info($"Normalized Void Base Crest selection '{selection}' to the provider ID required by Void Crest 0.4.4.");
         }
     }
 
     private static string CanonicalizeConfiguredBaseCrest(string value)
     {
-        return IsHunterVariantName(value) ? "Hunter" : value;
+        if (IsHunterVariantName(value))
+        {
+            return "Hunter";
+        }
+
+        return value switch
+        {
+            "Toolmaster" => "Architect",
+            "Spell" => "Shaman",
+            "Warrior" => "Beast",
+            "Cursed" => "Witch",
+            "Whip" => "Witch",
+            _ => value
+        };
+    }
+
+    private static string GetBaseCrestProviderName(string baseCrestName)
+    {
+        return BaseCrestProviderNames.TryGetValue(baseCrestName, out string? providerName)
+            ? providerName
+            : baseCrestName;
+    }
+
+    private static string GetVoidCrestBootstrapValue(string baseCrestName)
+    {
+        return VoidCrestBootstrapValues.TryGetValue(baseCrestName, out string? bootstrapValue)
+            ? bootstrapValue
+            : baseCrestName;
+    }
+
+    private static ToolCrest? GetBaseCrestProvider(string baseCrestName)
+    {
+        return ToolItemManager.GetCrestByName(GetBaseCrestProviderName(baseCrestName));
     }
 
     private static bool IsHunterVariantName(string value)
@@ -1840,7 +1893,7 @@ public sealed class Plugin : BaseUnityPlugin
             return;
         }
 
-        ToolCrest? baseCrest = ToolItemManager.GetCrestByName(GetActiveBaseCrest());
+        ToolCrest? baseCrest = GetBaseCrestProvider(GetActiveBaseCrest());
         if (!baseCrest || baseCrest.HeroConfig == null)
         {
             return;
@@ -1865,6 +1918,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         CrestConfigField?.SetValue(hero, voidConfig);
         UpdateConfigMethod?.Invoke(hero, Array.Empty<object>());
+        LogRuntimeCompositionState(hero, "reset-reapplied");
         Log.Info($"Reapplied Void compat config after ResetAllCrestState: {DescribeDownslashConfig(voidConfig)}");
     }
 
@@ -1876,7 +1930,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         string baseCrestName = GetActiveBaseCrest();
-        ToolCrest? baseCrest = ToolItemManager.GetCrestByName(baseCrestName);
+        ToolCrest? baseCrest = GetBaseCrestProvider(baseCrestName);
         if (!baseCrest)
         {
             return;
@@ -1886,11 +1940,81 @@ public sealed class Plugin : BaseUnityPlugin
         HeroController.ConfigGroup? currentGroup = CurrentConfigGroupProperty?.GetValue(hero) as HeroController.ConfigGroup;
         if (resolvedGroup == null || ReferenceEquals(resolvedGroup, currentGroup))
         {
+            LogRuntimeCompositionState(hero, "update-config-resolved", resolvedGroup);
             return;
         }
 
         SetConfigGroupMethod?.Invoke(hero, new object?[] { resolvedGroup, null });
+        LogRuntimeCompositionState(hero, "update-config-forced", resolvedGroup);
         Log.Info($"Resolved active config group to '{resolvedGroup.Config?.name ?? "<null>"}' for Void base crest '{baseCrestName}'.");
+    }
+
+    private static void LogRuntimeCompositionState(
+        HeroController hero,
+        string reason,
+        HeroController.ConfigGroup? providerGroup = null)
+    {
+        try
+        {
+            HeroController.ConfigGroup? targetGroup = VoidCrestPlugin.voidCrestData?.Moveset?.ConfigGroup;
+            HeroController.ConfigGroup? currentGroup = CurrentConfigGroupProperty?.GetValue(hero) as HeroController.ConfigGroup;
+            string baseCrestName = GetActiveBaseCrest();
+
+            if (providerGroup == null && !string.IsNullOrWhiteSpace(baseCrestName))
+            {
+                ToolCrest? baseCrest = GetBaseCrestProvider(baseCrestName);
+                if (baseCrest)
+                {
+                    providerGroup = ResolveSourceConfigGroup(hero, baseCrestName, baseCrest);
+                }
+            }
+
+            string currentRole = ReferenceEquals(currentGroup, targetGroup)
+                ? "host-target"
+                : ReferenceEquals(currentGroup, providerGroup)
+                    ? "provider-source"
+                    : "other";
+            string snapshot =
+                $"Physical={PlayerData.instance?.CurrentCrestID ?? "<null>"}; " +
+                $"Base={baseCrestName}; CurrentRole={currentRole}; " +
+                $"Current={DescribeRuntimeConfigGroup(currentGroup)}; " +
+                $"HostTarget={DescribeRuntimeConfigGroup(targetGroup)}; " +
+                $"ProviderSource={DescribeRuntimeConfigGroup(providerGroup)}";
+
+            if (LastRuntimeCompositionSnapshots.TryGetValue(reason, out string? previous) &&
+                string.Equals(previous, snapshot, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            LastRuntimeCompositionSnapshots[reason] = snapshot;
+            Log.Info($"Crest runtime snapshot [{reason}]: {snapshot}");
+        }
+        catch (Exception ex)
+        {
+            string key = $"RuntimeSnapshot:{reason}:{ex.GetType().FullName}";
+            if (LoggedDashAliases.Add(key))
+            {
+                Log.Warning($"Could not capture crest runtime snapshot '{reason}': {ex.GetBaseException().Message}");
+            }
+        }
+    }
+
+    private static string DescribeRuntimeConfigGroup(HeroController.ConfigGroup? group)
+    {
+        if (group == null)
+        {
+            return "<null>";
+        }
+
+        int groupIdentity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(group);
+        HeroControllerConfig? config = group.Config;
+        GameObject? root = group.ActiveRoot;
+        string configIdentity = config ? $"{config.name}#{config.GetInstanceID()}" : "<null>";
+        string rootIdentity = root
+            ? $"{root.name}#{root.GetInstanceID()}(active={root.activeSelf})"
+            : "<null>";
+        return $"group#{groupIdentity:X8}/config={configIdentity}/root={rootIdentity}";
     }
 
     private static void SetDashSlashFsmEditSilently(
@@ -1931,7 +2055,7 @@ public sealed class Plugin : BaseUnityPlugin
 
         ToolCrest? crest = tool as ToolCrest;
         return PlayerData.instance?.CurrentCrestID == "Void" &&
-               crest != null && IsSelectedBaseCrest(crest.name);
+               crest != null && DoesSelectedBaseRepresentCrest(crest.name);
     }
 
     private static bool ShouldApplyShamanSpellDamageBonus()
@@ -2251,12 +2375,12 @@ public sealed class Plugin : BaseUnityPlugin
 
         if (string.Equals(left, "Void", StringComparison.Ordinal) && right != null)
         {
-            return IsSelectedBaseCrest(right);
+            return DoesSelectedBaseRepresentCrest(right);
         }
 
         if (string.Equals(right, "Void", StringComparison.Ordinal) && left != null)
         {
-            return IsSelectedBaseCrest(left);
+            return DoesSelectedBaseRepresentCrest(left);
         }
 
         return false;
@@ -2290,12 +2414,7 @@ public sealed class Plugin : BaseUnityPlugin
             return true;
         }
 
-        // Player-facing Cursed uses the internal Whip/Witch attack family, but
-        // this equivalence is deliberately confined to attack/audio routing.
-        return string.Equals(selected, "Cursed", StringComparison.Ordinal) &&
-               (string.Equals(crestName, "Whip", StringComparison.Ordinal) ||
-                string.Equals(crestName, "Witch", StringComparison.Ordinal) ||
-                string.Equals(crestName, "Cursed", StringComparison.Ordinal));
+        return false;
     }
 
     private static bool ShouldRefreshLiveSlashVisuals()
@@ -2336,7 +2455,7 @@ public sealed class Plugin : BaseUnityPlugin
         }
 
         string baseCrestName = GetActiveBaseCrest();
-        ToolCrest? baseCrest = ToolItemManager.GetCrestByName(baseCrestName);
+        ToolCrest? baseCrest = GetBaseCrestProvider(baseCrestName);
         HeroController.ConfigGroup? sourceGroup = baseCrest ? ResolveSourceConfigGroup(hero, baseCrestName, baseCrest) : null;
         ApplyChargeSlashTintPolicy(baseCrestName, sourceGroup?.ChargeSlash, voidCrestData.Moveset.ConfigGroup.ChargeSlash);
     }
@@ -2408,7 +2527,7 @@ public sealed class Plugin : BaseUnityPlugin
 
     private static HeroController.ConfigGroup? ResolveSourceConfigGroup(HeroController hero, string baseCrestName, ToolCrest baseCrest)
     {
-        CrestData? customCrest = FindNeedleforgeCrest(baseCrestName);
+        CrestData? customCrest = FindNeedleforgeCrest(GetBaseCrestProviderName(baseCrestName));
         if (customCrest?.Moveset?.ConfigGroup != null)
         {
             return customCrest.Moveset.ConfigGroup;

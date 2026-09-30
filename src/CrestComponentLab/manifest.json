@@ -1,0 +1,9 @@
+{
+  "name": "Crest_Component_Lab",
+  "version_number": "0.2.0",
+  "website_url": "",
+  "description": "Clean-room Needleforge crest for independently composing moveset, dash, charge, normal Bind, and special Bind providers.",
+  "dependencies": [
+    "Voidlings-Needleforge-0.9.0"
+  ]
+}

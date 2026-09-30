@@ -45,10 +45,10 @@ Supported menu choices:
 - Hunter
 - Wanderer
 - Reaper
-- Toolmaster
-- Spell
-- Warrior
-- Cursed
+- Architect
+- Shaman
+- Beast
+- Witch
 - Cloakless
 
 The selected crest supplies its complete regular attack set, including applicable:
@@ -110,9 +110,9 @@ Void Reaper changes how Voidmass is earned:
 
 Vanilla Reaper remains responsible for harvest duration, payout rolls, enemy eligibility, orb direction, fling speed, and Reap hit effects.
 
-### Warrior / Beast — Rage restoration
+### Beast — Rage restoration
 
-Completing a normal Void Bind with Warrior selected activates vanilla Rage.
+Completing a normal Void Bind with Beast selected activates vanilla Rage.
 
 The patch restores the game's normal Rage systems, including:
 
@@ -126,9 +126,9 @@ The patch restores the game's normal Rage systems, including:
 
 Void's special Up-Bind does not activate Rage.
 
-### Shaman / Spell — spell bonus and Bind behavior
+### Shaman — spell bonus and Bind behavior
 
-Selecting Spell restores Shaman's vanilla Skill damage multiplier for Silk Skills while preserving Void Crest's own Silk Skill mechanics.
+Selecting Shaman restores its vanilla Skill damage multiplier for Silk Skills while preserving Void Crest's own Silk Skill mechanics.
 
 The grounded Shaman Bind route is also restored with Void-specific rules:
 
@@ -137,17 +137,17 @@ The grounded Shaman Bind route is also restored with Void-specific rules:
 - those recovery frames cannot trigger retaliation;
 - Void's Up-Bind remains the Void sphere special rather than becoming Shaman's normal special Bind.
 
-### Cursed / Witch attack family
+### Witch attack family
 
-The player-facing Cursed selection is connected to the game's internal Witch/Whip attack family where required for attacks and audio.
+The player-facing Witch selection is connected to the game's internal Witch/Whip attack family where required for attacks and audio. Cursed is not exposed as a selectable base crest or treated as Witch identity. Void Crest 0.4.4 still receives its proven Cursed HeroConfig as a private bootstrap, after which this compatibility patch resolves and transplants the real Witch/Whip provider.
 
 This restores the intended attack objects, recoil behavior, animation flag, Charge Slash, and attack audio without replacing Void's Bind with Witch roots.
 
-### Toolmaster / Architect and Cloakless
+### Architect and Cloakless
 
-Toolmaster restores its complete attack tree and wall-attack behavior. Cloakless can also provide its complete attack configuration.
+Architect restores its complete attack tree and wall-attack behavior. Cloakless can also provide its complete attack configuration.
 
-Version 1.0.0 does not add a new Voidmass passive or custom Bind overhaul for either selection.
+This update does not add a new Voidmass passive or custom Bind overhaul for either selection.
 
 ## Quality of life and ModMenu compatibility
 
@@ -164,7 +164,7 @@ Thank you to the ModMenu contributors for providing the standard in-game configu
 
 Void Crest's original Base Crest setting is converted from an error-prone free-text field into a scrollable in-game choice menu.
 
-Older Hunter v2/v3 text values are automatically migrated to `Hunter`, which then follows the player's real Hunter progression.
+Older Hunter v2/v3 text values are presented as `Hunter`, which then follows the player's real Hunter progression. The menu presents `Toolmaster`, `Spell`, `Warrior`, and the private Cursed bootstrap as the in-game names `Architect`, `Shaman`, `Beast`, and `Witch`, while preserving the provider IDs required by Void Crest 0.4.4.
 
 ### Safe crest switching
 
@@ -286,26 +286,38 @@ The BepInEx log records:
 
 ### Startup and scene safety
 
-- The stable 1.0.0 implementation avoids initializing Void Crest's color utility during the pre-menu loader.
+- The compatibility implementation avoids initializing Void Crest's color utility during the pre-menu loader.
 - The half-pip correction runs in a normal late-frame update, preventing the startup failure that could interfere with room-entry/respawn placement.
 
 ## Conclusion
 
-Void Crest Compatibility Patch 1.0.0 keeps DerVorce's original Void Crest mod as its required gameplay foundation while allowing the Base Crest setting to behave like a real gameplay branch.
+Void Crest Compatibility keeps DerVorce's original Void Crest mod as its required gameplay foundation while allowing the Base Crest setting to behave like a real gameplay branch.
 
 DerVorce's mod still supplies Shadow Dash, retaliation, Void Bind, the Void Up-Bind sphere, Void Silk Skills, Voidmass, the Void spool, and the underlying Void tool-slot type. This patch supplies the replacement crest design and layout, moveset transplantation, vanilla crest recognition, branch mechanics, audio, animation, configuration, and safety work needed for those systems to coexist.
 
-Version 1.0.0 focuses on a stable playable foundation. Future versions may finish additional crest overhauls and address remaining compatibility bugs while continuing to credit each contributor only for their own work.
+The project focuses on a stable playable foundation. Future versions may finish additional crest overhauls and address remaining compatibility bugs while continuing to credit each contributor only for their own work.
+
+## Experimental crest-framework work
+
+This repository now contains an experimental, non-runtime foundation for generalizing the compatibility work into a reusable crest-composition framework. It defines feature metadata, mix-and-match recipes, dependency validation, structured diagnostics, and a true rollback transaction before any of those APIs are wired into the released plugin.
+
+- [Reverse-engineering evidence and current limits](docs/REVERSE_ENGINEERING_CREST_SYSTEM.md)
+- [Framework architecture and migration plan](docs/CREST_FRAMEWORK_FOUNDATION.md)
+- [Generated managed-IL crest inventory](docs/evidence/VANILLA_CREST_INVENTORY.md)
+- [Gameplay validation matrix](docs/GAMEPLAY_VALIDATION_MATRIX.md)
+
+These APIs are not stable yet and registration in the experimental catalog does not imply that a gameplay adapter has been implemented or verified.
 
 ## Technical explanations
 
 ### Version and audited dependencies
 
-- Compatibility plugin version: `1.0.0`
+- Release candidate: `1.1.0` (packaged locally, unpublished)
+- Last published compatibility version: `1.0.0`
 - Tested base implementation: Void Crest `0.4.4`
 - Compatibility plugin ID: `io.github.erymanthis.voidcrestmovesetcompat`
 - Void Crest plugin ID: `io.dervoce.voidcrest`
-- Compatibility SHA-256: `2FF64872574A228356D4CB2398C51F59FD7DB4ADC189C948ECD11068AD03C05E`
+- Last published 1.0.0 SHA-256: `2FF64872574A228356D4CB2398C51F59FD7DB4ADC189C948ECD11068AD03C05E`
 
 The compatibility plugin has hard BepInEx dependencies on Void Crest and Needleforge. It uses Silksong.ModMenu for the Base Crest choice element and in-game configuration presentation.
 
@@ -531,7 +543,7 @@ The Reaper half is cleared when Voidmass becomes 0, Voidmass reaches 10, debug V
 
 ### Harmony hook ledger
 
-Version 1.0.0 contains 22 Harmony patch classes:
+Version 1.1.0 contains 22 Harmony patch classes:
 
 1. `ShamanNormalBindHealingPatch` → `HeroController.AddHealth(int)`
 2. `MovesetMakerInitializePatch` → `MovesetMaker.InitializeMoveset`
@@ -564,5 +576,15 @@ Additional non-Harmony behavior runs through plugin `Update`, `LateUpdate`, `OnG
 - Hunter boss recognition remains heuristic until a universal game/community boss API exists.
 - Moveset and audio transplantation depend on current vanilla/Needleforge attack-tree structure.
 - Tint restoration uses a 12-frame correction window rather than permanently owning every sprite.
-- Witch retaliation roots, Reaper features beyond the current harvest conversion, projectile Overclock, and unfinished crest overhauls are not part of 1.0.0.
+- Witch retaliation roots, Reaper features beyond the current harvest conversion, projectile Overclock, and unfinished crest overhauls are not part of 1.1.0.
 - Base Crest changes remain intentionally bench-gated for stability.
+
+## Clean-room component experiment
+
+[`CrestComponentLab`](src/CrestComponentLab/README.md) is a separate Needleforge-only test mod. It
+creates a new inert-by-default crest and independently configures its core moveset, dash slash,
+charge slash, normal Bind provider, and special Up-Bind provider. It contains no dependency on
+Void Crest or this compatibility plugin.
+
+See [`CREST_COMPONENT_LAB_TEST.md`](docs/CREST_COMPONENT_LAB_TEST.md) for the installation and
+gameplay matrix.

@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Version>0.2.0</Version>
+    <AssemblyName>CrestComponentLab</AssemblyName>
+    <RootNamespace>CrestComponentLab</RootNamespace>
+    <Authors>Erymanthis</Authors>
+    <Company>ManthisCo</Company>
+    <Copyright>Copyright © Erymanthis 2026</Copyright>
+    <ThunderstoreProfileDir Condition="'$(ThunderstoreProfileDir)' == ''">$(APPDATA)\Thunderstore Mod Manager\DataFolder\HollowKnightSilksong\profiles\Void TESTING ONLY</ThunderstoreProfileDir>
+    <SilksongGameDir Condition="'$(SilksongGameDir)' == ''">$(MSBuildProgramFiles32)\Steam\steamapps\common\Hollow Knight Silksong</SilksongGameDir>
+    <SilksongManagedDir>$(SilksongGameDir)\Hollow Knight Silksong_Data\Managed</SilksongManagedDir>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <Reference>
+      <Private>false</Private>
+    </Reference>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>$(ThunderstoreProfileDir)\BepInEx\core\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="BepInEx">
+      <HintPath>$(ThunderstoreProfileDir)\BepInEx\core\BepInEx.dll</HintPath>
+    </Reference>
+    <Reference Include="Needleforge">
+      <HintPath>$(ThunderstoreProfileDir)\BepInEx\plugins\Voidlings-Needleforge\Needleforge.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(SilksongManagedDir)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(SilksongManagedDir)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(SilksongManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="PlayMaker">
+      <HintPath>$(SilksongManagedDir)\PlayMaker.dll</HintPath>
+    </Reference>
+    <Reference Include="TeamCherry.TK2D">
+      <HintPath>$(SilksongManagedDir)\TeamCherry.TK2D.dll</HintPath>
+    </Reference>
+    <Reference Include="TeamCherry.Localization">
+      <HintPath>$(SilksongManagedDir)\TeamCherry.Localization.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

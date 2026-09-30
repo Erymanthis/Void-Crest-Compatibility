@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.1.0
+
+Target version: `1.1.0`. This release candidate is packaged locally but has not been published.
+
+### Added
+
+- Added the independent `CrestComponentLab` Needleforge test mod with genuinely inert attack
+  defaults and separate core moveset, dash slash, charge slash, normal Bind, and Up-Bind provider
+  configuration.
+- Added clean-profile installation, static anti-dependency verification, and a focused component
+  isolation gameplay matrix.
+
+- Added an experimental crest-composition foundation with feature descriptors, recipes, dependency/conflict validation, structured diagnostics, and reverse-order rollback transactions.
+- Added an evidence-backed vanilla feature catalog covering standard attack slots, animation/audio profiles, and the currently understood Hunter, Wanderer, Reaper, Beast, Shaman, and Witch behaviors.
+- Added a reusable Mono.Cecil inspection tool and generated managed-IL inventory for crest state, config fields, and crest-dependent call sites.
+- Added runtime config-group snapshots that distinguish the physical crest, active provider, transplanted host group, and current group by object identity.
+- Added reverse-engineering and framework architecture documentation plus framework-only tests.
+
+### Fixed
+
+- Changed Void's Base Crest switcher to display Architect, Shaman, Beast, and Witch while storing the provider IDs required by Void Crest 0.4.4. Cursed is no longer selectable or treated as Witch identity; it remains only as the base mod's private Witch-family bootstrap before the real Witch/Whip runtime provider is applied.
+- Replaced the abstract `ToolBase.IsEquipped` Harmony target with its concrete `ToolCrest`
+  implementation so the lab loads without `BadImageFormatException`.
+- Prevented the `None` core from falling through to Hunter downslash or leaving null slash/damage
+  components that spam `HeroController.Attack` exceptions.
+- Added live configuration detection with atomic, bench-entry/bench-exit gated recipe activation.
+- Preinstalled the Special Bind FSM route so its provider can change live at the same gate.
+
 ## 1.0.0
 
 - Added complete Base Crest attack-set transplantation with safe bench-gated switching.
