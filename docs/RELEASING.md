@@ -23,7 +23,7 @@ From the repository root:
 
 ```powershell
 .\tools\Prepare-Release.ps1 `
-  -Version 1.1.0 `
+  -Version 1.1.1 `
   -TestedDllPath "<testing-profile>\BepInEx\plugins\ManthisCo-Void_Crest_Compatibility\VoidCrestMovesetCompat.dll"
 ```
 

@@ -34,10 +34,10 @@ After gameplay-testing the final DLL, prepare the GitHub, Nexus Mods, and Thunde
 
 ```powershell
 .\tools\Prepare-Release.ps1 `
-  -Version 1.1.0 `
+  -Version 1.1.1 `
   -TestedDllPath "<testing-profile>\BepInEx\plugins\ManthisCo-Void_Crest_Compatibility\VoidCrestMovesetCompat.dll"
 
-.\tests\DistributionStructure.Tests.ps1 -Version 1.1.0
+.\tests\DistributionStructure.Tests.ps1 -Version 1.1.1
 ```
 
 This creates local, ignored artifacts only. It does not tag, upload, or publish. See

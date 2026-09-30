@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string] $ExpectedVersion = '1.1.0'
+    [string] $ExpectedVersion = '1.1.1'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -29,6 +29,7 @@ $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $pluginSource = Get-Content -LiteralPath $pluginPath -Raw
 $assemblyInfo = Get-Content -LiteralPath $assemblyInfoPath -Raw
 $changelog = Get-Content -LiteralPath $changelogPath -Raw
+$readme = Get-Content -LiteralPath (Join-Path $repoRoot 'README.md') -Raw
 
 Assert-Equal $manifest.version_number $ExpectedVersion 'Root manifest version'
 Assert-Equal $project.Project.PropertyGroup.Version $ExpectedVersion 'Project version'
@@ -51,6 +52,17 @@ Assert-Equal $assemblyVersionMatch.Groups['version'].Value "$ExpectedVersion.0" 
 
 if ($changelog -notmatch ('Target version:\s*`' + [regex]::Escape($ExpectedVersion) + '`')) {
     throw "CHANGELOG.md does not identify $ExpectedVersion as the unpublished target."
+}
+
+foreach ($forgottenStatement in @(
+    'packaged locally, unpublished',
+    'This release candidate is packaged locally but has not been published',
+    'Last published compatibility version'
+)) {
+    if ($readme -match [regex]::Escape($forgottenStatement) -or
+        $changelog -match [regex]::Escape($forgottenStatement)) {
+        throw "Packaged documentation still contains a forgotten planning statement: $forgottenStatement"
+    }
 }
 
 # Guard the already-published 1.0.0 package against accidental mutation.

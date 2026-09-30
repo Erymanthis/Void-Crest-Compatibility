@@ -312,8 +312,6 @@ These APIs are not stable yet and registration in the experimental catalog does 
 
 ### Version and audited dependencies
 
-- Release candidate: `1.1.0` (packaged locally, unpublished)
-- Last published compatibility version: `1.0.0`
 - Tested base implementation: Void Crest `0.4.4`
 - Compatibility plugin ID: `io.github.erymanthis.voidcrestmovesetcompat`
 - Void Crest plugin ID: `io.dervoce.voidcrest`

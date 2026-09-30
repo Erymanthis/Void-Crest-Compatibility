@@ -1,6 +1,6 @@
 {
   "name": "Void_Crest_Compatibility",
-  "version_number": "1.1.0",
+  "version_number": "1.1.1",
   "website_url": "https://github.com/Erymanthis/Void-Crest-Compatibility",
   "description": "Expands Void Crest with functional base crests, restored passives, new Voidmass mechanics, audio, animation, tint, and ModMenu compatibility.",
   "dependencies": [

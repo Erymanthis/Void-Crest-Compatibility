@@ -19,7 +19,7 @@ namespace VoidCrestMovesetCompat;
 
 [BepInDependency("io.dervoce.voidcrest")]
 [BepInDependency("io.github.needleforge")]
-[BepInPlugin("io.github.erymanthis.voidcrestmovesetcompat", "VoidCrestMovesetCompat", "1.1.0")]
+[BepInPlugin("io.github.erymanthis.voidcrestmovesetcompat", "VoidCrestMovesetCompat", "1.1.1")]
 public sealed class Plugin : BaseUnityPlugin
 {
     private static readonly BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
