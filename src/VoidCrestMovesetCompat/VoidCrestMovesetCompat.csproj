@@ -15,6 +15,11 @@
     <SilksongManagedDir>$(SilksongGameDir)\Hollow Knight Silksong_Data\Managed</SilksongManagedDir>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
   <ItemDefinitionGroup>
     <Reference>
       <Private>false</Private>

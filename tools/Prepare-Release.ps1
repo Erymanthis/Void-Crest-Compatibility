@@ -70,6 +70,14 @@ foreach ($dependency in $manifest.dependencies) {
 
 $assemblyVersion = [Reflection.AssemblyName]::GetAssemblyName($testedDll).Version.ToString()
 Assert-Equal $assemblyVersion "$Version.0" 'Tested DLL assembly version'
+$dllBytes = [IO.File]::ReadAllBytes($testedDll)
+$dllAscii = [Text.Encoding]::ASCII.GetString($dllBytes)
+$dllUnicode = [Text.Encoding]::Unicode.GetString($dllBytes)
+foreach ($privateMarker in @('C:\Users\', 'OneDrive')) {
+    if ($dllAscii.Contains($privateMarker) -or $dllUnicode.Contains($privateMarker)) {
+        throw "Tested DLL contains a private build/tooling marker: $privateMarker"
+    }
+}
 if ($assemblyInfo -notmatch ('AssemblyInformationalVersion\("' + [regex]::Escape($Version) + '"\)')) {
     throw 'Assembly informational version is not current.'
 }
